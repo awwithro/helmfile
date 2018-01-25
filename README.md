@@ -69,11 +69,12 @@ COMMANDS:
      delete  delete charts from state file (helm delete)
 
 GLOBAL OPTIONS:
-   --file FILE, -f FILE  load config from FILE (default: "charts.yaml")
-   --quiet, -q           silence output
-   --kube-context value  Set kubectl context. Uses current context by default
-   --help, -h            show help
-   --version, -v         print the version
+   --file FILE, -f FILE                    load config from FILE (default: "charts.yaml")
+   --quiet, -q                             silence output
+   --kube-context value                    Set kubectl context. Uses current context by default
+   --chart-name CHART-NAME, -n CHART-NAME  Only run using the charts named CHART-NAME in the config file
+   --help, -h                              show help
+   --version, -v                           print the version
 ```
 
 ### diff

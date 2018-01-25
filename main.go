@@ -38,6 +38,10 @@ func main() {
 			Name:  "kube-context",
 			Usage: "Set kubectl context. Uses current context by default",
 		},
+		cli.StringSliceFlag{
+			Name:  "chart-name, n",
+			Usage: "Only run using the charts named `CHART-NAME` in the config file",
+		},
 	}
 
 	app.Commands = []cli.Command{
@@ -220,6 +224,7 @@ func before(c *cli.Context) (*state.HelmState, helmexec.Interface, error) {
 	file := c.GlobalString("file")
 	quiet := c.GlobalBool("quiet")
 	kubeContext := c.GlobalString("kube-context")
+	chartFilter := c.GlobalStringSlice("chart-name")
 
 	state, err := state.ReadFromFile(file)
 	if err != nil {
@@ -231,6 +236,13 @@ func before(c *cli.Context) (*state.HelmState, helmexec.Interface, error) {
 			os.Exit(1)
 		}
 		kubeContext = state.Context
+	}
+	if len(chartFilter) > 0 {
+		err = state.FilterCharts(chartFilter)
+		if err != nil {
+			log.Print(err)
+			os.Exit(1)
+		}
 	}
 	var writer io.Writer
 	if !quiet {

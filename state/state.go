@@ -12,10 +12,11 @@ import (
 
 	"github.com/roboll/helmfile/helmexec"
 
-	yaml "gopkg.in/yaml.v1"
+	"bytes"
 	"path"
 	"regexp"
-	"bytes"
+
+	yaml "gopkg.in/yaml.v1"
 )
 
 type HelmState struct {
@@ -31,9 +32,9 @@ type RepositorySpec struct {
 }
 
 type ChartSpec struct {
-	Chart     string `yaml:"chart"`
-	Version   string `yaml:"version"`
-	Verify    bool   `yaml:"verify"`
+	Chart   string `yaml:"chart"`
+	Version string `yaml:"version"`
+	Verify  bool   `yaml:"verify"`
 
 	Name      string     `yaml:"name"`
 	Namespace string     `yaml:"namespace"`
@@ -65,12 +66,12 @@ func ReadFromFile(file string) (*HelmState, error) {
 }
 
 var /* const */
-	stringTemplateFuncMap = template.FuncMap{
-		"env": getEnvVar,
-	}
+stringTemplateFuncMap = template.FuncMap{
+	"env": getEnvVar,
+}
 
 var /* const */
-	stringTemplate = template.New("stringTemplate").Funcs(stringTemplateFuncMap)
+stringTemplate = template.New("stringTemplate").Funcs(stringTemplateFuncMap)
 
 func getEnvVar(envVarName string) (string, error) {
 	envVarValue, isSet := os.LookupEnv(envVarName)
@@ -124,7 +125,7 @@ func (state *HelmState) SyncRepos(helm helmexec.Interface) []error {
 	return nil
 }
 
-func (state *HelmState) SyncCharts(helm helmexec.Interface, additonalValues []string) []error {
+func (state *HelmState) SyncCharts(helm helmexec.Interface, additionalValues []string) []error {
 	var wg sync.WaitGroup
 	errs := []error{}
 
@@ -135,7 +136,7 @@ func (state *HelmState) SyncCharts(helm helmexec.Interface, additonalValues []st
 			if flagsErr != nil {
 				errs = append(errs, flagsErr)
 			}
-			for _, value := range additonalValues {
+			for _, value := range additionalValues {
 				valfile, err := filepath.Abs(value)
 				if err != nil {
 					errs = append(errs, err)
@@ -159,7 +160,7 @@ func (state *HelmState) SyncCharts(helm helmexec.Interface, additonalValues []st
 	return nil
 }
 
-func (state *HelmState) DiffCharts(helm helmexec.Interface, additonalValues []string) []error {
+func (state *HelmState) DiffCharts(helm helmexec.Interface, additionalValues []string) []error {
 	var wg sync.WaitGroup
 	errs := []error{}
 
@@ -172,7 +173,7 @@ func (state *HelmState) DiffCharts(helm helmexec.Interface, additonalValues []st
 			if flagsErr != nil {
 				errs = append(errs, flagsErr)
 			}
-			for _, value := range additonalValues {
+			for _, value := range additionalValues {
 				valfile, err := filepath.Abs(value)
 				if err != nil {
 					errs = append(errs, err)
@@ -215,6 +216,26 @@ func (state *HelmState) DeleteCharts(helm helmexec.Interface) []error {
 		return errs
 	}
 
+	return nil
+}
+
+// FilterCharts allows for the execution of helm commands against a subset of the charts in the helmfile.
+// returns an error a chartName doesn't exist in the list of charts
+func (state *HelmState) FilterCharts(chartNames []string) error {
+	var filteredCharts []ChartSpec
+	for _, name := range chartNames {
+		missingName := true
+		for _, chart := range state.Charts {
+			if chart.Name == name {
+				filteredCharts = append(filteredCharts, chart)
+				missingName = false
+			}
+		}
+		if missingName {
+			return fmt.Errorf("%s is not a configured chart", name)
+		}
+	}
+	state.Charts = filteredCharts
 	return nil
 }
 
